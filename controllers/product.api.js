@@ -87,7 +87,7 @@ router.post('/add-product',	//	auth.validateRefreshToken,
 
 router.get('/get-all-product', async (req, res) => {
 	try {
-		const allProducts = await prisma.products.findMany();
+		const allProducts = await prisma.tb_product.findMany();
 		res.status(200).send({
 			success: true,
 			data: allProducts

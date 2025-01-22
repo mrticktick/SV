@@ -1,0 +1,64 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+  name            String?
+  email           String    @unique
+  password        String
+  descripttion    String?
+  refreshToken    String?
+  language        String
+  localId         Int?
+  memberTypeId    Int?
+  catelogyId      Int?
+  productTypeId   Int?
+  shopId          Int?
+  descriptionId   Int?
+  propertiesId    Int?
+  imageId         Int?
+  avatar_url      String?
+  address         String?
+  village_id      String?
+  province_id     Int?
+  district_id     Int?
+  country_id      Int?
+  telephone       String?
+  createDate      DateTime?
+  createUserId    Int?
+  ModifieldDate   DateTime?
+  ModifieldUserId Int?
+}
+
+// model tb_product {
+//   id                Int       @id @default(autoincrement())
+//   name              String    @unique
+//   typeId            Int?
+//   supplierId        Int?
+//   product_code      String?
+//   // createdate DateTime 
+//   // start_time String 
+//   // end_time String 
+//   title             String?
+//   facility_instance String?
+//   // visitors Visitors
+//   description       String?
+//   rsvp_link         String?
+//   address           String?
+//   createDate        DateTime?
+//   createUserId      Int?
+//   ModifieldDate     DateTime?
+//   ModifieldUserId   Int?
+// }

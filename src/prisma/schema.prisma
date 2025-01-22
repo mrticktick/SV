@@ -24,7 +24,7 @@ model tb_product {
   product_code      String?
   title             String?
   facility_instance String?
-  rsvp_link         String
+  rsvp_link         String?
   address           String?
   createDate        String?
   createUserId      String?
