@@ -38,14 +38,26 @@ class UserController {
 
   async createUser(req, res) {
     try {
-      const user = await UserService.createUser(req.body);
+      const result = await UserService.createUser(req.body);
+      
+      // Set refresh token in HTTP-only cookie
+      res.cookie('refreshToken', result.refreshToken, {
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        httpOnly: true,
+        // secure: true, // uncomment in production with HTTPS
+      });
+
       return res.status(201).json(
-        ApiResponse.success(user, "User created successfully")
+        ApiResponse.success({
+          user: result.user,
+          accessToken: result.accessToken
+        }, "User created successfully")
       );
+
     } catch (error) {
-      if (error.code === 'P2002') {
-        return res.status(400).json(
-          ApiResponse.error("Email or username already exists", null, 400)
+      if (error.message === 'Email already exists') {
+        return res.status(409).json(
+          ApiResponse.error("Email already exists", null, 409)
         );
       }
       return res.status(500).json(
@@ -99,6 +111,66 @@ class UserController {
     } catch (error) {
       return res.status(500).json(
         ApiResponse.error("Error deleting user", error)
+      );
+    }
+  }
+
+  async login(req, res) {
+    try {
+      const { email, password } = req.body;
+
+      // Validate input
+      if (!email || !password) {
+        return res.status(400).json(
+          ApiResponse.error("Email and password are required", null, 400)
+        );
+      }
+
+      const result = await UserService.login(email, password);
+
+      // Set refresh token in HTTP-only cookie
+      res.cookie('refreshToken', result.refreshToken, {
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        httpOnly: true,
+        // secure: true, // uncomment in production with HTTPS
+      });
+
+      return res.status(200).json(
+        ApiResponse.success({
+          user: result.user,
+          accessToken: result.accessToken
+        }, "Login successful")
+      );
+
+    } catch (error) {
+      if (error.message === 'User not found' || error.message === 'Invalid password') {
+        return res.status(401).json(
+          ApiResponse.error("Invalid email or password", null, 401)
+        );
+      }
+
+      return res.status(500).json(
+        ApiResponse.error("Login failed", error)
+      );
+    }
+  }
+
+  async logout(req, res) {
+    try {
+      const { refreshToken } = req.cookies;
+      
+      await UserService.logout(refreshToken);
+
+      // Clear refresh token cookie
+      res.clearCookie('refreshToken');
+
+      return res.status(200).json(
+        ApiResponse.success(null, "Logout successful")
+      );
+
+    } catch (error) {
+      return res.status(500).json(
+        ApiResponse.error("Logout failed", error)
       );
     }
   }

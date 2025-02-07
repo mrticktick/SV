@@ -3,9 +3,9 @@ const path = require('path');
 
 const schemaFilePath = path.join(__dirname, 'prisma/schema.prisma');
 const commonFields = `
-  createDate      DateTime?
+  createdAt      DateTime?
   createUserId    Int?
-  ModifieldDate   DateTime?
+  updatedAt   DateTime?
   ModifieldUserId Int?
 `;
 

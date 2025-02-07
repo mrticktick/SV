@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const UserController = require('../controllers/user.controller');
 const { createUserValidation, updateUserValidation } = require('../middleware/userValidation');
+const authMiddleware = require('../middleware/auth.middleware');
 
 // Get all users
 router.get('/users', UserController.getUsers);
@@ -17,5 +18,11 @@ router.put('/users/:id', updateUserValidation, UserController.updateUser);
 
 // Delete user
 router.delete('/users/:id', UserController.deleteUser);
+
+// Login route
+router.post('/user/login', UserController.login);
+
+// Logout route (protected)
+router.post('/logout', authMiddleware, UserController.logout);
 
 module.exports = router; 

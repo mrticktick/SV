@@ -54,7 +54,7 @@ app.use(bodyParser.json());
 app.use(cors());
 app.use(lusca.xframe('SAMEORIGIN'));
 app.use(lusca.xssProtection(true));
-console.log('__dirname', path.join(__dirname, '../Server', 'build/images')); // app path for images
+// console.log('__dirname', path.join(__dirname, '../Server', 'build/images')); // app path for images
 app.use(	
 	express.static(path.join(__dirname, '../Server', 'build'), {
 		maxAge: 31557600000

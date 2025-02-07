@@ -1,5 +1,6 @@
 const prisma = require('../utils/prisma');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 class UserService {
   async getUsers(query = {}) {
@@ -59,27 +60,92 @@ class UserService {
     });
   }
 
+  generateTokens(userId, role) {
+    const accessToken = jwt.sign(
+      { 
+        userId,
+        role
+      },
+      process.env.JWT_ACCESS_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    const refreshToken = jwt.sign(
+      { 
+        userId,
+        role
+      },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    return {
+      accessToken,
+      refreshToken
+    };
+  }
+
+  async saveToken(userId, refreshToken) {
+    const tokenData = await prisma.tb_token.findFirst({
+      where: { userId }
+    });
+
+    if (tokenData) {
+      return await prisma.tb_token.update({
+        where: { id: tokenData.id },
+        data: { token: refreshToken }
+      });
+    }
+
+    return await prisma.tb_token.create({
+      data: {
+        userId,
+        token: refreshToken
+      }
+    });
+  }
+
   async createUser(data) {
+    // Check for existing email
+    const existingUser = await prisma.tb_user.findUnique({
+      where: { email: data.email }
+    });
+
+    if (existingUser) {
+      throw new Error('Email already exists');
+    }
+
+    // Hash password
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
+    // Create user
     const user = await prisma.tb_user.create({
       data: {
         username: data.username,
         email: data.email,
         password: hashedPassword,
-        role: data.role || 'USER', // Default role
-      },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
+        role: data.role || 'USER'
       }
     });
 
-    return user;
+    // Pass role to generateTokens
+    const tokens = this.generateTokens(user.id, user.role);
+    
+    // Save refresh token
+    await this.saveToken(user.id, tokens.refreshToken);
+
+    // Return user data and tokens
+    return {
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      },
+      ...tokens
+    };
   }
 
   async updateUser(id, data) {
@@ -136,6 +202,53 @@ class UserService {
     return await prisma.tb_user.delete({
       where: { id }
     });
+  }
+
+  async login(email, password) {
+    const user = await prisma.tb_user.findUnique({
+      where: { email }
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new Error('Invalid password');
+    }
+
+    // Pass role to generateTokens
+    const tokens = this.generateTokens(user.id, user.role);
+    
+    await this.saveToken(user.id, tokens.refreshToken);
+
+    return {
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      },
+      ...tokens
+    };
+  }
+
+  async logout(refreshToken) {
+    if (!refreshToken) {
+      throw new Error('Refresh token required');
+    }
+
+    // Remove refresh token from database
+    const token = await prisma.tb_token.deleteMany({
+      where: {
+        token: refreshToken
+      }
+    });
+
+    return token;
   }
 }
 

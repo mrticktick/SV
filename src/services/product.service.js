@@ -56,30 +56,43 @@ class ProductService {
   }
 
   async createProduct(data) {
-    // Check for existing product with same name
-    const existingProduct = await prisma.tb_product.findFirst({
-      where: {
-        name: data.name
-      }
-    });
+    try {
+      const price = Number(parseFloat(data.price).toFixed(2));
+      
+      // First, verify that the category exists
+      const categoryExists = await prisma.tb_category.findUnique({
+        where: {
+          id: data.categoryId
+        }
+      });
 
-    if (existingProduct) {
-      throw new Error('Product name already exists');
+      if (!categoryExists) {
+        throw new Error('Category not found');
+      }
+
+      const product = await prisma.tb_product.create({
+        data: {
+          name: data.name,
+          description: data.description,
+          price: price,
+          image: data.image,
+          stock: parseInt(data.stock),
+          isAvailable: data.isAvailable ?? true,
+          category: {
+            connect: {
+              id: data.categoryId
+            }
+          }
+        },
+        include: {
+          category: true // Include category in response
+        }
+      });
+
+      return product;
+    } catch (error) {
+      throw error;
     }
-
-    const price = Number(parseFloat(data.price).toFixed(2));
-    
-    const product = await prisma.tb_product.create({
-      data: {
-        name: data.name,
-        description: data.description,
-        price: price,
-        stock: parseInt(data.stock),
-        typeId: data.typeId,
-      }
-    });
-
-    return product;
   }
 
   async updateProduct(id, data) {
